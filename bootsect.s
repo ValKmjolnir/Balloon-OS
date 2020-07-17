@@ -47,8 +47,8 @@ load_setup:
 	mov $0x0002,%cx # CH(track) CL(sector)
 	mov $0x0204,%ax # AH(0x02 read) AL(4 sectors)
 	mov $0x0200,%bx # es is alreay 0x9000,file will be readed to 0x9000:0x0200->0x90200
-	int $0x13        # BIOS drive service
-	jnc printinfo
+	int $0x13       # BIOS drive service
+	jnc printinfo   # if read failed carry flag will be 1
 	mov $0x0000,%dx
 	mov $0x0000,%ax
 	int $0x13        # reset
