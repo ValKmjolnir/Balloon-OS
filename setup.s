@@ -1,0 +1,2 @@
+setup:
+	jmp setup
