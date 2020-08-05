@@ -18,5 +18,5 @@ Image:bootsect setup
 	- @echo "Image built done"
 clean:
 	- @rm -f *.o bootsect setup Image
-run-qemu:bootsect
+run-qemu:Image
 	- @qemu-system-i386 -boot a -fda Image
