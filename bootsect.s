@@ -75,19 +75,19 @@ before_load_system:
 
 load_system:
 	mov %cs:sectors+0,%ax # load sector_number to ax
-	cmpb %al,%cl     # if CL(sector)==sector_number means need to update DH(head) and CH(track)
-	jne load_process # if not equal,continue loading
-	cmpb $0x01,%dh   # if DH==1,CH+1
-	jne set_new_dx_cx # if not equal,skip adding 1 to CH
-	addb $0x01,%ch    # add 1 to CH to change the track
+	cmpb %al,%cl          # if CL(sector)==sector_number means need to update DH(head) and CH(track)
+	jne load_process      # if not equal,continue loading
+	cmpb $0x01,%dh        # if DH==1,CH+1
+	jne set_new_dx_cx     # if not equal,skip adding 1 to CH
+	addb $0x01,%ch        # add 1 to CH to change the track
 
 set_new_dx_cx:
-	xorb $0x01,%dh    # change DH,DH=0x00 then DH is set to 0x01,else DH is set to 0x00
+	xorb $0x01,%dh # change DH,DH=0x00 then DH is set to 0x01,else DH is set to 0x00
 	xorb %cl,%cl
 
 load_process:
-	addb $0x01,%cl
-	mov $0x0201,%ax
+	addb $0x01,%cl  # add 1 to CL to load the next sector
+	mov $0x0201,%ax # AH(0x02 read) AL(0x01 sectors)
 	int $0x13
 	jc failed_load_system
 
@@ -96,13 +96,13 @@ load_process:
 	mov %ax,%es
 
 	cmpw $SYSEND,%ax # if es==SYSEND,end loading and print info string
-	je ok_load_system
-	jmp load_system # continue loading
+	je ok_load_system # SYSEND(0x4220) is the condition to stop loading,system will be loaded from 0x10000 to (0x4220-0x20)<<4
+	jmp load_system # if es!=SYSEND then continue loading
 
 ok_load_system:
 	mov $0x03,%ah   # read cursor position
 	xor %bh,%bh     # set page 0
-	int $0x10
+	int $0x10       # BIOS video service
 
 	mov $INITSEG,%ax
 	mov %ax,%es     # es:bp points to the string
@@ -111,8 +111,8 @@ ok_load_system:
 	mov $0x1301,%ax # write string,move cursor
 	mov $0x0007,%bx # page 0,black background/white characters
 	mov $28,%cx     # length of string
-	int $0x10       # 0x10 video service
-	ljmp $SETUPSEG,$0
+	int $0x10       # BIOS video service
+	ljmp $SETUPSEG,$0 # jump to setup
 
 failed_load_system:
 	mov $0x0000,%dx
