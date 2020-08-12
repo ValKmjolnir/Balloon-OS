@@ -21,8 +21,8 @@ bssbeg:
 # beginning address of setup.s
 .equ SYSSEG, 0x1000
 # beginning address of system
-.equ SYSEND, 0x4220
-# system ends at 0x42000,0x42000-0x10000=0x32000=200kb
+.equ SYSEND, 0x8020
+# system ends at 0x70000=448kb
 
 
 ljmp $BOOTSEG,$bootstart
@@ -58,7 +58,6 @@ load_setup:
 	mov $0x0000,%dx
 	mov $0x0000,%ax   # ah=0x00 means use BIOS reset floppy/disk
 	int $0x13         # reset
-	jmp load_setup
 
 get_sector_num:
 	mov $0x0000,%dx # dl=0x00 means it is floppy,if it is disk,dl[7]=1
@@ -112,6 +111,7 @@ ok_load_system:
 	mov $0x0007,%bx # page 0,black background/white characters
 	mov $28,%cx     # length of string
 	int $0x10       # BIOS video service
+
 	ljmp $SETUPSEG,$0 # jump to setup
 
 failed_load_system:
