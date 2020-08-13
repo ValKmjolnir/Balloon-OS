@@ -2,37 +2,44 @@ all: Image
 
 .PHONY=clean run-qemu
 
-system:system.s
-	- @as --32 system.s -o system
+system:boot/head.o init/main.o kernel/sched.o
+	- @ld -T ld_sys.ld -m elf_i386 boot/head.o init/main.o kernel/sched.o -o system.sym
+	- @strip system.sym -o system.o
+	- @objcopy -O binary -R .note -R .comment system.o system
+# use -m elf_i386 to generate elf-i386 executable file
 
-system.s:head.s main.s
-	- @cat head.s main.s > system.s
+boot/head.o:
+	- @as --32 boot/head.s -o boot/head.o
 
-main.s:
-	- @gcc -m32 -S main.c -o main.s
+boot/setup:boot/setup.s
+	- @as --32 boot/setup.s -o boot/setup.o
+	- @ld -T boot/ld_boot.ld boot/setup.o -o boot/setup
+	- @objcopy -O binary -j .text boot/setup
 
-setup.o:setup.s
-	- @as --32 setup.s -o setup.o
+boot/bootsect:boot/bootsect.s boot/ld_boot.ld
+	- @as --32 boot/bootsect.s -o boot/bootsect.o
+	- @ld -T boot/ld_boot.ld boot/bootsect.o -o boot/bootsect
+	- @objcopy -O binary -j .text boot/bootsect
 
-setup:setup.o
-	- @ld -T ld_boot.ld setup.o -o setup
-	- @objcopy -O binary -j .text setup
+init/main.o:init/main.c
+	- @gcc -m32 -S init/main.c -o init/main.s
+	- @as --32 init/main.s -o init/main.o
 
-bootsect.o:bootsect.s
-	- @as --32 bootsect.s -o bootsect.o
+kernel/sched.o:kernel/sched.c
+	- @gcc -m32 -S kernel/sched.c -o kernel/sched.s
+	- @as --32 kernel/sched.s -o kernel/sched.o
 
-bootsect:bootsect.o ld_boot.ld
-	- @ld -T ld_boot.ld bootsect.o -o bootsect
-	- @objcopy -O binary -j .text bootsect
-
-Image:bootsect setup system
-	- @dd if=bootsect of=Image bs=512 count=1
-	- @dd if=setup of=Image bs=512 count=4 seek=1
+Image:boot/bootsect boot/setup system
+	- @dd if=boot/bootsect of=Image bs=512 count=1
+	- @dd if=boot/setup of=Image bs=512 count=4 seek=1
 	- @dd if=system of=Image bs=512 count=10 seek=5
 	- @echo "Image built done"
 
 clean:
-	- @rm -f *.o bootsect setup main.s system.s system Image
+	- @rm -f *.o system.sym system Image
+	- @rm -f boot/*.o boot/bootsect boot/setup
+	- @rm -f init/*.o init/*.s
+	- @rm -f kernel/*.o kernel/*.s
 
 run-qemu:Image
 	- @qemu-system-i386 -boot a -fda Image
