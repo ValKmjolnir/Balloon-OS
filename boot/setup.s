@@ -30,9 +30,9 @@ setup:
 	int $0x10       # line and column number will be stored in dx,DH=line,DL=column
 	mov %dx,%ds:0   # store dx to 0x90000,2 bytes
 
-set_vga:
-	mov $0x0013,%ax
-	int $0x10
+# set_vga:
+#	mov $0x0013,%ax
+#	int $0x10
 	# 0xa0000~0xaffff video RAM
 
 prt_setup_info:
@@ -60,7 +60,7 @@ do_move:
 	xor %di,%di
 	xor %si,%si
 	rep
-	movsw           # 0x8000*2=64kb
+	movsw           # 0x8000*2=0x10000=64kb
 	mov %es,%ax
 	add $0x1000,%ax
 	mov %ax,%es
@@ -104,7 +104,6 @@ empty_8042:
 enable_p_mode:
 	mov $0x0001,%ax # change PE bit to 1
 	lmsw %ax
-# loop:jmp loop
 	ljmp $8,$0
 # cs (binary)00000000 00001 0 00 (index 1 in gdt(0) 0 level[highest])
 # eip=0
@@ -112,6 +111,19 @@ enable_p_mode:
 setupinfo:
 	.ascii "Welcome"
 	.byte 13,10
+
+idt_info:
+	.word 0   # idt limit 0
+	.word 0,0 # idt base: 0<<16+0
+# IDTR 48 bit
+# IDTR[47:16] base address,IDTR[15:0] idt limit
+gdt_info:
+	.word 0x800 # 2048 bytes -> 256 GDT entries (8 bytes)
+	.word 512+gdt,0x9 # gdt base: 0x9<<16+0x200+gdt=0x90200(setup segment)+gdt
+# GDTR 48 bit
+# GDTR[47:16] base address,GDTR[15:0] gdt limit
+# gdt_info means GDTR=0x9,0x200+gdt,0x0800 (little-endian)
+# then GDTR=0x90200+gdt(47:16),0x800(15:0)
 
 gdt:
 	# index 0
@@ -127,18 +139,6 @@ gdt:
 	.word 0x9200 # P=1(segment exist) DPL=00(0 level) S=1(code/data segment) TYPE=0010(read/write) base=0x00
 	.word 0x00c0 # base=0x00 G=1(4kb) D/B=1(32bit system) L=0(L is reserved for 64bit system) AVL=0
 
-idt_info:
-	.word 0   # idt limit 0
-	.word 0,0 # idt base: 0<<16+0
-# IDTR 48 bit
-# IDTR[47:16] base address,IDTR[15:0] idt limit
-gdt_info:
-	.word 0x800 # 2048 bytes -> 256 GDT entries (8 bytes)
-	.word 512+gdt,0x9 # gdt base: 0x9<<16+0x200+gdt=0x90200(setup segment)+gdt
-# GDTR 48 bit
-# GDTR[47:16] base address,GDTR[15:0] gdt limit
-# gdt_info means GDTR=0x9,0x200+gdt,0x0800 (little-endian)
-# then GDTR=0x90200+gdt(47:16),0x800(15:0)
 .text
 textend:
 .data

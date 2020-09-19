@@ -1,6 +1,6 @@
 # Balloon-OS
 toy OS just for FUN
-## environment
+# Environment
 Ubuntu 16.04.6-LTS-amd64
-### system test environment
+# System Test Environment
 qemu-system-i386

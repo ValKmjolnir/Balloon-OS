@@ -22,7 +22,7 @@ bssbeg:
 # beginning address of setup.s
 .equ SYSSEG, 0x1000
 # beginning address of system
-.equ SYSEND, 0x8020
+.equ SYSEND, 0x8000
 # system ends at 0x70000=448kb
 
 
@@ -39,17 +39,18 @@ bootstart:
 	rep
 	movsw
 	ljmp $INITSEG,$stackset
-	# copy operation use rep movsw 256(cx) times to move 512 bytes from ds:di to es:si
+	# copy operation use rep movsw 256(cx) times to move 512(256*2) bytes from ds:di to es:si
 	# copy bootsect from 0x07c00 to 0x90000 and jump to 0x90000+stackset
+	# ljmp $INITSEG,$stackset -> cs=INITSEG ip=stackset
 stackset:
 	mov %cs,%ax     # ax=INITSEG
 	mov %ax,%ds     # ds=ax
 	mov %ax,%es     # es=ax
 	mov %ax,%ss     # ss=ax
-	mov $0xff00,%sp # set sp=0xff00
+	mov $0xff00,%sp # sp=0xff00
 
 load_setup:
-	mov $0x0000,%dx    # DH(0 head) DL(0 drive)
+	mov $0x0000,%dx    # DH(0 head) DL(0 drive[floppy])
 	mov $0x0002,%cx    # CH(0 track) CL(from 2 sector)
 	mov $0x0204,%ax    # AH(0x02 read) AL(4 sectors)
 	mov $0x0200,%bx    # es is alreay 0x9000,file will be readed to 0x9000:0x0200->0x90200
@@ -59,6 +60,7 @@ load_setup:
 	mov $0x0000,%dx
 	mov $0x0000,%ax   # ah=0x00 means use BIOS reset floppy/disk
 	int $0x13         # reset
+	jmp load_setup
 
 get_sector_num:
 	mov $0x0000,%dx # dl=0x00 means it is floppy,if it is disk,dl[7]=1
@@ -69,24 +71,24 @@ get_sector_num:
 before_load_system:
 	xor %bx,%bx     # set bx=0x0000
 	mov $0x0000,%dx # DH(0 head) DL(0 drive[floppy])
-	mov $0x0005,%cx # CH(0 track)CL(5 sector)
-	mov $SYSSEG,%ax
-	mov %ax,%es     # set es=0x1000
+	mov $0x0005,%cx # CH(0 track)CL(from 5 sector)
+	mov $SYSSEG,%ax # ax=0x1000
+	mov %ax,%es     # set es=0x1000, system will be loaded at es:bx=0x10000
 
 load_system:
 	mov %cs:sectors+0,%ax # load sector_number to ax
 	cmpb %al,%cl          # if CL(sector)==sector_number means need to update DH(head) and CH(track)
 	jne load_process      # if not equal,continue loading
-	cmpb $0x01,%dh        # if DH==1,CH+1
+	cmpb $0x01,%dh        # if DH(head)==1,CH(track)+1
 	jne set_new_dx_cx     # if not equal,skip adding 1 to CH
 	addb $0x01,%ch        # add 1 to CH to change the track
 
 set_new_dx_cx:
-	xorb $0x01,%dh # change DH,DH=0x00 then DH is set to 0x01,else DH is set to 0x00
-	xorb %cl,%cl
+	xorb $0x01,%dh # change DH(head),DH=0x00 then DH is set to 0x01,else DH is set to 0x00
+	xorb %cl,%cl   # reset CL(sector) to 0
 
 load_process:
-	addb $0x01,%cl  # add 1 to CL to load the next sector
+	addb $0x01,%cl  # add 1 to CL to load the next sector so CL begins at 0x06
 	mov $0x0201,%ax # AH(0x02 read) AL(0x01 sectors)
 	int $0x13
 	jc failed_load_system
@@ -96,7 +98,7 @@ load_process:
 	mov %ax,%es
 
 	cmpw $SYSEND,%ax # if es==SYSEND,end loading and print info string
-	je ok_load_system # SYSEND(0x4220) is the condition to stop loading,system will be loaded from 0x10000 to (0x4220-0x20)<<4
+	je ok_load_system # SYSEND(0x8000) is the condition to stop loading,system will be loaded from 0x10000 to 0x7fff
 	jmp load_system # if es!=SYSEND then continue loading
 
 ok_load_system:
