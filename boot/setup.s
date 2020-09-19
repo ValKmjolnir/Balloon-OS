@@ -82,29 +82,26 @@ load_idt_gdt:
 	cli # close interrupt
 
 a20_on:
-	call empty_8042
-	movb $0xd1,%al
-	outb %al,$0x64 # send write command to 8042 output port
+	inb $0x92,%al
+	orb $0x02,%al
+	outb %al,$0x92
 
-	call empty_8042
-	movb $0xdf,%al # A20 on
-	outb %al,$0x60
 
-	call empty_8042
-	jmp enable_p_mode
-
-empty_8042:
-	inb $0x64,%al   # 0x64 8042 status port
-	testb $0x02,%al # is input buffer full?
-	jnz empty_8042
-	ret
 # in protect mode cs,ds,es,ss... store the index of gdt/idt and the gdt/idt mode
 # example cs[2]=1 means using idt cs[1:0] means RPL(Requested Privilege Level)
 
-enable_p_mode:
-	mov $0x0001,%ax # change PE bit to 1
-	lmsw %ax
-	ljmp $8,$0
+# enable protected mode
+enable_protect_mode:
+	mov %cr0,%eax
+	bts $0,%eax
+	mov %eax,%cr0
+# jump to protected mode
+	mov $0x10,%ax
+	mov %ax,%ds
+	mov %ax,%es
+	mov %ax,%fs
+	mov %ax,%gs
+	ljmp $0x8,$0x0
 # cs (binary)00000000 00001 0 00 (index 1 in gdt(0) 0 level[highest])
 # eip=0
 

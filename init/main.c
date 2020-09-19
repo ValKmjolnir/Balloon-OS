@@ -1,3 +1,7 @@
+void printk(char* buf)
+{
+    return;
+}
 void main()
 {
     while(1)
