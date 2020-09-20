@@ -10,7 +10,6 @@ startup_32:
 	mov %ax, %es
 	mov %ax, %fs
 	mov %ax, %gs
-fuck:jmp fuck
 	lss stack_start, %esp		# Setup the Stack to stack_start, Change SS and %esp together
 	call setup_idt
 	call setup_gdt
@@ -31,7 +30,7 @@ fuck:jmp fuck
 
 	movl %cr0, %eax
 	andl $0x80000011, %eax
-	orl	$2, %eax			# Set MP Bit
+	orl $2, %eax			# Set MP Bit
 	movl %eax, %cr0
 	call check_x87
 	jmp after_page_tables
@@ -69,6 +68,7 @@ rp_sidt:					# Fill the IDT Table will default stub entry
 	dec %cx
 	jne rp_sidt
 	lidt idt_descr			# Load IDT Register
+	ret
 
 setup_gdt:
 	lgdt gdt_descr

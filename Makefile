@@ -1,4 +1,4 @@
-all: Image
+All: Image
 
 .PHONY=clean run-qemu
 
@@ -9,7 +9,7 @@ system:boot/head.o init/main.o kernel/sched.o
 # use -m elf_i386 to generate elf-i386 executable file
 # GNU strip discards all symbols from object files objfile
 
-boot/head.o:
+boot/head.o:boot/head.s
 	- @as --32 boot/head.s -o boot/head.o
 # head.o will be linked with init/main.o and kernel by ld
 
@@ -26,8 +26,7 @@ boot/bootsect:boot/bootsect.s boot/ld_boot.ld
 # code16 bootloader
 
 init/main.o:init/main.c
-	- @gcc -m32 -S init/main.c -o init/main.s
-	- @as --32 init/main.s -o init/main.o
+	- @gcc -m32 init/main.c -c -o init/main.o
 
 kernel/sched.o:kernel/sched.c
 	- @gcc -m32 -S kernel/sched.c -o kernel/sched.s
@@ -36,7 +35,7 @@ kernel/sched.o:kernel/sched.c
 Image:boot/bootsect boot/setup system
 	- @dd if=boot/bootsect of=Image bs=512 count=1
 	- @dd if=boot/setup of=Image bs=512 count=4 seek=1
-	- @dd if=system of=Image bs=512 count=10 seek=5
+	- @dd if=system of=Image bs=512 seek=5
 	- @echo "Image built done"
 # Image of this system
 
