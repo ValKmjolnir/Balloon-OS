@@ -30,20 +30,10 @@ setup:
 	int $0x10       # line and column number will be stored in dx,DH=line,DL=column
 	mov %dx,%ds:0   # store dx to 0x90000,2 bytes
 
-# set_vga:
-#	mov $0x0013,%ax
-#	int $0x10
+set_vga:
+	mov $0x0013,%ax
+	int $0x10
 	# 0xa0000~0xaffff video RAM
-
-prt_setup_info:
-	mov $SETUPSEG,%ax
-	mov %ax,%es     # set es=SETUPSEG to use es:bp points to info string
-
-	mov $setupinfo,%bp # set string address
-	mov $0x1301,%ax    # write string,move cursor
-	mov $0x0007,%bx    # page 0,black background/white characters
-	mov $9,%cx        # length of string
-	int $0x10          # BIOS video service
 
 before_move:
 	mov $SYSBEG,%ax
@@ -53,7 +43,7 @@ before_move:
 
 do_move:
 	mov %es,%ax
-	cmp $0x7000,%ax # 0x10000~0x7ffff to 0x00000~0x6ffff if es==0x8000 call end_move
+	cmp $0x7000,%ax # 0x10000~0x7ffff to 0x00000~0x6ffff if es==0x7000 call end_move
 	jz end_move
 
 	mov $0x8000,%cx
@@ -85,8 +75,6 @@ a20_on:
 	inb $0x92,%al
 	orb $0x02,%al
 	outb %al,$0x92
-
-
 # in protect mode cs,ds,es,ss... store the index of gdt/idt and the gdt/idt mode
 # example cs[2]=1 means using idt cs[1:0] means RPL(Requested Privilege Level)
 
@@ -104,10 +92,6 @@ enable_protect_mode:
 	ljmp $0x8,$0x0
 # cs (binary)00000000 00001 0 00 (index 1 in gdt(0) 0 level[highest])
 # eip=0
-
-setupinfo:
-	.ascii "Welcome"
-	.byte 13,10
 
 idt_info:
 	.word 0   # idt limit 0
