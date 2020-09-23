@@ -31,12 +31,8 @@ void init_vga_memory(int color)
 void main()
 {
     init_vga_memory(63);
-    print_char('>',0xa0140);
-    print_char('h',0xa0140+4);
-    print_char('e',0xa0140+8);
-    print_char('l',0xa0140+12);
-    print_char('l',0xa0140+16);
-    print_char('o',0xa0140+20);
+    print(">hello world",0xa0001);
+    print("abcdefghijklmnopqrstuvwxyz",0xa0000+320*6);
     while(1)
     {
         __asm__("hlt");
