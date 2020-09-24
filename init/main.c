@@ -2,7 +2,7 @@
 // copyright @ValKmjolnir
 // 2020
 #include <stdarg.h>
-#include "prt_char.h"
+#include "font.h"
 
 #define PAGE_SIZE 4096
 long kernel_stack[PAGE_SIZE>>2];
@@ -31,8 +31,7 @@ void init_vga_memory(int color)
 void main()
 {
     init_vga_memory(63);
-    print(">hello world",0xa0001);
-    print("abcdefghijklmnopqrstuvwxyz",0xa0000+320*6);
+    test();
     while(1)
     {
         __asm__("hlt");
