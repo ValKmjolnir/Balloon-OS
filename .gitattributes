@@ -1,6 +1,6 @@
-*.c linguist-language=c
-*.h linguist-language=c
-*.cpp linguist-language=c++
-*.s linguist-language=assembly
-*.ld linguist-language=linker-script
-Makefile linguist-language=makefile
+*.c linguist-language=C
+*.h linguist-language=C
+*.cpp linguist-language=C++
+*.s linguist-language=Assembly
+*.ld linguist-language=Linker-Script
+Makefile linguist-language=Makefile
