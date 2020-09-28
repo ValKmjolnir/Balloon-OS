@@ -2,8 +2,8 @@ All: Image
 
 .PHONY=clean run-qemu
 
-system:boot/head.o init/main.o kernel/sched.o
-	- @ld -T ld_sys.ld -m elf_i386 boot/head.o init/main.o kernel/sched.o -o system.sym
+system:boot/head.o init/main.o kernel/sched.o kernel/printk.o
+	- @ld -T ld_sys.ld -m elf_i386 boot/head.o init/main.o kernel/sched.o kernel/printk.o -o system.sym
 	- @strip system.sym -o system.o
 	- @objcopy -O binary -R .note -R .comment system.o system
 # use -m elf_i386 to generate elf-i386 executable file
@@ -26,11 +26,13 @@ boot/bootsect:boot/bootsect.s boot/ld_boot.ld
 # code16 bootloader
 
 init/main.o:init/main.c
-	- @gcc -m32 init/main.c -c -o init/main.o
+	- @gcc -m32 -c init/main.c -fno-stack-protector -o init/main.o
 
 kernel/sched.o:kernel/sched.c
-	- @gcc -m32 -S kernel/sched.c -o kernel/sched.s
-	- @as --32 kernel/sched.s -o kernel/sched.o
+	- @gcc -m32 -c kernel/sched.c -fno-stack-protector -o kernel/sched.o
+
+kernel/printk.o:kernel/printk.c
+	- @gcc -m32 -c kernel/printk.c -fno-stack-protector -o kernel/printk.o
 
 Image:boot/bootsect boot/setup system
 	- @dd if=boot/bootsect of=Image bs=512 count=1
