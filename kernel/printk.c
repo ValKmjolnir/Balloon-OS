@@ -10,17 +10,27 @@ typedef char* va_list;
 // avoid null pointer
 #define va_end(ap) (ap=(va_list)0)
 
-
+// black 0
 #define VGA_BLACK 0
+// pink 63
 #define VGA_PINK 63
 // base address of vga 13h 320x200 video ram
 char* pixel_pointer=0xa0000+1;
 // line boundary of pixel_pointer
 char* pixel_line_boundary=0xa0000+320;
-
+// set pixel at 320x200 vga ram
 #define setpixel(base,x,y,color) (*(char*)(base+(x)+(y)*320)=color)
 
-void sys_putchar(char c)
+#define FLAG_LEFT  1
+#define FLAG_PLUS  2
+#define FLAG_SPACE 4
+#define FLAG_HASH  8
+#define FLAG_ZERO  16
+#define IS_FLAGS(c) (c=='-' || c=='+' || c==' ' || c=='#' || c=='0')
+#define IS_DIGIT(c) ('0'<=c && c<='9')
+
+
+void _putchar(char c)
 {
 	if(c=='\n' || c=='\r')
 	{
@@ -54,6 +64,9 @@ void sys_putchar(char c)
 int vsprintf(char* buf,const char* fmt,va_list args)
 {
 	int cnt=0;
+	int flags=0;
+	int width=-1;
+	int precision=-1;
 	for(;*fmt;++fmt)
 	{
 		if(*fmt!='%')
@@ -63,7 +76,46 @@ int vsprintf(char* buf,const char* fmt,va_list args)
 			continue;
 		}
 		++fmt;
-		// unfinished
+		// flags
+		while(IS_FLAGS(*fmt))
+		{
+			switch(*fmt)
+			{
+				case '-':flags|=FLAG_LEFT;break;
+				case '+':flags|=FLAG_PLUS;break;
+				case ' ':flags|=FLAG_SPACE;break;
+				case '#':flags|=FLAG_HASH;break;
+				case '0':flags|=FLAG_ZERO;break;
+			}
+			++fmt;
+		}
+		// width
+		if(*fmt=='*')
+		{
+			width=-1;
+			++fmt;
+		}
+		else
+			while(IS_DIGIT(*fmt))
+			{
+				width=width*10+(*fmt-'0');
+				++fmt;
+			}
+		// precision
+		if(*fmt=='.')
+		{
+			++fmt;
+			if(*fmt=='*')
+				precision=-1;
+			else
+				while(IS_DIGIT(*fmt))
+				{
+					precision=precision*10+(*fmt-'0');
+					++fmt;
+				}
+			++fmt;
+		}
+		// length unfinished
 	}
 	return cnt;
 }
@@ -76,7 +128,7 @@ int printk(const char* fmt,...)
     va_start(arg,fmt);
     int cnt=vsprintf(buffer,fmt,arg);
 	for(char* tmp=buffer;*tmp;++tmp)
-		sys_putchar(*tmp);
+		_putchar(*tmp);
     va_end(arg);
     return cnt;
 }
