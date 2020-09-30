@@ -24,6 +24,7 @@ void init_vga_memory(int color)
 void main()
 {
     init_vga_memory(63);
+    // defined in kernel/printk.c
     printk("@ balloon system > ");
     while(1)
     {

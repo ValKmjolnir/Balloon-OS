@@ -1,3 +1,7 @@
+// balloon system kernel/font.h
+// copyright @ValKmjolnir
+// 2020
+
 #ifndef FONT_H
 #define FONT_H
 
