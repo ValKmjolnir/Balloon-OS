@@ -24,9 +24,7 @@ typedef char* va_list;
 int vsprintf(char* buf,const char* fmt,va_list args)
 {
 	int cnt=0;
-	int flags=0;
-	int width=-1;
-	int precision=-1;
+	int flags,width,precision,qualifier;
 	for(;*fmt;++fmt)
 	{
 		if(*fmt!='%')
@@ -53,8 +51,13 @@ int vsprintf(char* buf,const char* fmt,va_list args)
         width=-1;
 		if(*fmt=='*')
 		{
-			width=-1;
+			width=va_arg(args,int);
 			++fmt;
+			if(width<0)
+			{
+				width=-width;
+				flags|=FLAG_LEFT;
+			}
 		}
 		else
 			while(IS_DIGIT(*fmt))
@@ -68,16 +71,39 @@ int vsprintf(char* buf,const char* fmt,va_list args)
 		{
 			++fmt;
 			if(*fmt=='*')
+			{
 				precision=va_arg(args,int);
+				++fmt;
+			}
 			else
 				while(IS_DIGIT(*fmt))
 				{
 					precision=precision*10+(*fmt-'0');
 					++fmt;
 				}
+			if(precision<0)
+				precision=0;
+		}
+		// qualifier
+		qualifier=-1;
+		if(*fmt == 'h' || *fmt == 'l' || *fmt == 'L')
+		{
+			qualifier=*fmt;
 			++fmt;
 		}
-		// length unfinished
+		switch(*fmt)
+		{
+			case 'c':break;
+			case 's':break;
+			case 'o':break;
+			case 'p':break;
+			case 'x':break;
+			case 'X':break;
+			case 'd':break;
+			case 'i':break;
+			case 'u':break;
+			case 'n':break;
+		}
 	}
 	return cnt;
 }
