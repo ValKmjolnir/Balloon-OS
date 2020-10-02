@@ -25,7 +25,7 @@ void main()
 {
     init_vga_memory(63);
     // defined in kernel/printk.c
-    printk("@ balloon system > ");
+    printk("@%s: balloon system >>>","ValKmjolnir");
     while(1)
     {
         __asm__("hlt");
