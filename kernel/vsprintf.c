@@ -34,14 +34,116 @@ enum vsprintf_length
 	len_L
 };
 
+char* oct_num(char* str,long num)
+{
+	char tmp[11];
+	if(num==0)
+	{
+		*str++='0';
+		return str;
+	}
+	for(int i=0;i<11;++i)
+	{
+		tmp[10-i]=('0'+(num&7));
+		num>>=3;
+	}
+	int ptr=0;
+	for(;ptr<11;++ptr)
+		if(tmp[ptr]!='0')
+			break;
+	for(;ptr<11;++ptr)
+		*str++=tmp[ptr];
+	return str;
+}
+char* hex_num(char* str,long num,int flags)
+{
+	char tmp[8];
+	if(num==0)
+	{
+		*str++='0';
+		return str;
+	}
+	for(int i=0;i<8;++i)
+	{
+		int hex_bit=(num&15);
+		tmp[7-i]=(hex_bit>9? ((flags&FLAG_SMALL)? 'a':'A')+hex_bit-10:'0'+hex_bit);
+		num>>=4;
+	}
+	int ptr=0;
+	for(;ptr<8;++ptr)
+		if(tmp[ptr]!='0')
+			break;
+	for(;ptr<8;++ptr)
+		*str++=tmp[ptr];
+	return str;
+}
+char* dec_num(char* str,long num,int flags)
+{
+	char tmp[10];
+	if(num==0)
+	{
+		*str++='0';
+		return str;
+	}
+	if((flags&FLAG_SIGN) && num<0)
+	{
+		if(num=-2147483648)
+		{
+			char special_num[13]="-2147483648";
+			for(int i=0;i<12;++i)
+				*str++=special_num[i];
+			return str;
+		}
+		*str++='-';
+		num=-num;
+	}
+	for(int i=0;i<10;++i)
+	{
+		tmp[9-i]=('0'+num%10);
+		num/=10;
+	}
+	int ptr=0;
+	for(;ptr<10;++ptr)
+		if(tmp[ptr]!='0')
+			break;
+	for(;ptr<10;++ptr)
+		*str++=tmp[ptr];
+	return str;
+}
+char* unsigned_dec_num(char* str,unsigned long num)
+{
+	char tmp[10];
+	if(num==0)
+	{
+		*str++='0';
+		return str;
+	}
+	for(int i=0;i<10;++i)
+	{
+		tmp[9-i]=('0'+num%10);
+		num/=10;
+	}
+	int ptr=0;
+	for(;ptr<10;++ptr)
+		if(tmp[ptr]!='0')
+			break;
+	for(;ptr<10;++ptr)
+		*str++=tmp[ptr];
+	return str;
+}
+
 int vsprintf(char* buf,const char* fmt,va_list args)
 {
 	int flags,width,precision,qualifier;
 	char* str;
 	// reserved for va_args
 	char* va_str;
+	// reserved for 's'
 	int str_len;
 	char* tmp;
+	// reserved for 'n'
+	int* ip;
+	// reserved for loop
 	int i;
 	for(str=buf;*fmt;++fmt)
 	{
@@ -170,14 +272,29 @@ int vsprintf(char* buf,const char* fmt,va_list args)
 					--width;
 				}
 				break;
-			case 'o':break;
-			case 'p':break;
+			case 'o':
+				str=oct_num(str,va_arg(args,unsigned long));
+				break;
+			case 'p':
+				*str++='0';
+				*str++='x';
+				str=hex_num(str,(unsigned long)va_arg(args,void *),flags);
+				break;
 			case 'x':flags|=FLAG_SMALL;
-			case 'X':break;
-			case 'd':break;
+			case 'X':
+				str=hex_num(str,va_arg(args,unsigned long),flags);
+				break;
+			case 'd':
 			case 'i':flags|=FLAG_SIGN;
-			case 'u':break;
-			case 'n':break;
+				str=dec_num(str,va_arg(args,unsigned long),flags);
+				break;
+			case 'u':
+				str=unsigned_dec_num(str,va_arg(args,unsigned long));
+				break;
+			case 'n':
+				ip=va_arg(args, int *);
+				*ip=(str-buf);
+				break;
 			default:
 				if(*fmt!='%')
 					*str++='%';
