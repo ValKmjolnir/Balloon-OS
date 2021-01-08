@@ -69,7 +69,7 @@ load_idt_gdt:
 	mov %ax,%ds
 	lidt idt_info # ds:idt_info
 	lgdt gdt_info # ds:gdt_info
-	cli # close interrupt
+	cli           # close interrupt
 
 a20_on:
 	inb $0x92,%al
