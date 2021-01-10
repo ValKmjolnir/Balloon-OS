@@ -80,7 +80,7 @@ char* hex_num(char* str,long num,int flags)
 char* dec_num(char* str,long num,int flags)
 {
 	char tmp[10];
-	if(num==0)
+	if(!num)
 	{
 		*str++='0';
 		return str;
