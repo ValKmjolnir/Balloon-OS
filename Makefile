@@ -37,7 +37,8 @@ kernel/printk.o:kernel/printk.c
 Image:boot/bootsect boot/setup system
 	- @dd if=boot/bootsect of=Image bs=512 count=1
 	- @dd if=boot/setup of=Image bs=512 count=4 seek=1
-	- @dd if=system of=Image bs=512 seek=5
+	- @dd if=system of=Image bs=512 count=1440 seek=5
+	- @dd if=/dev/zero of=Image bs=512 count=1435 seek=1445
 	- @echo "Image built done"
 # Image of this system
 
