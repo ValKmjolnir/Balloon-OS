@@ -1,0 +1,7 @@
+# build dir
+build
+
+# properties
+.vscode
+.vs
+.DS_Store

@@ -1,37 +1,111 @@
 // balloon system init/main.c
 // copyright @ValKmjolnir
-// 2020
+// 2021
 
 #ifndef __MAIN_C__
 #define __MAIN_C__
 
-#define PAGE_SIZE 4096
-long kernel_stack[PAGE_SIZE>>2];
+#define NULL 0
+#include "../kernel/cstring.h"
+#include "../kernel/printk.h"
+#include "../kernel/input.h"
+
+long system_stack[2048];
 struct {
-	long *a;
-	short b;
-}stack_start={&kernel_stack[PAGE_SIZE>>2],0x10};
-// esp is set &kernel_stack[PAGE_SIZE>>2],ss is set 0x10->0b00010 0 00 (index 2 in gdt(0) 0 level[highest])
+    long *esp; // esp &system_stack[2048]
+    short ss;  // ss  0x10
+} stack_start = {&system_stack[2048],0x10};
 
 // init vga 16 color memory
-void init_vga_memory(int color)
-{
+void init_vga_memory(int color) {
 	// 320 pixels in a line 0x140
-	for(unsigned int i=0xa0000;i<0xb0000;++i)
+	for(unsigned int i=0xa0000;i<0xb0000;++i) {
 		*(char*)i=color;
+    }
 	return;
 }
 
-// head.s jumps here
-void main()
-{
-	init_vga_memory(63);
-	// defined in ../kernel/printk.c
-	printk("@%s >>\n\r","valk");
-	int c=0;
-	while(1)
-		__asm__("hlt");
-	return;
+int help();
+
+int version() {
+    printk(" Balloon OS v0.0.5\n");
+    printk(" ___  ____          __   __  _  _\n");
+    printk(" |__] |__| |   |   |  | |  | |\\ |\n");
+    printk(" |__] |  | |__ |__ |__| |__| | \\|\n");
+    return 0;
 }
 
+int reboot() {
+    // keyboard controller error reboot
+    asm(
+        "movb $0xfe,%al\n"
+        "outb %al,$0x64\n"
+    );
+    // write 0x0e to 0xcf9 reset but not usefull in virtualbox
+    // 0x02 soft reset
+    // 0x06 hard reset
+    // 0x0e full reset
+    asm(
+        "xor %dx,%dx\n"
+        "xor %al,%al\n"
+        "mov $0xcf9,%dx\n"
+        "in %dx,%al\n"
+        "mov $0xcf9,%dx\n"
+        "orb $0x0e,%al\n"
+        "out %al,%dx"
+    );
+    return 0;
+}
+
+int shutdown() {
+    asm(
+        "mov $0x5301,%ax\n"
+        "xor %bx,%bx\n"
+        "int $0x15"
+    );
+    return 0;
+}
+
+struct {
+    char* cmd_name;
+    int (*func_ptr)();
+} cmd_info[]= {
+    {"help", help},
+    {"version", version},
+    {"reset", reboot},
+    {"shutdown", shutdown},
+    {"clear", clean},
+    {NULL, NULL}
+};
+
+int help() {
+    for(int i=0;cmd_info[i].cmd_name;++i) {
+        printk(" %s\n",cmd_info[i].cmd_name);
+    }
+}
+
+void execcmd(const char* buf) {
+    for(int i=0;cmd_info[i].cmd_name;++i) {
+        if(!strcmp(cmd_info[i].cmd_name,buf)) {
+            cmd_info[i].func_ptr();
+            return;
+        }
+    }
+    printk(" %s: command not found\n",buf);
+    return;
+}
+
+int main() {
+    char buf[256];
+    clean();
+    printk(" Balloon OS v0.0.5\n");
+    printk(" Copyright @ValKmjolnir 2020-2023\n");
+    printk(" https://github.com/ValKmjolnir/Balloon-OS\n");
+    while(1) {
+        printk("$> ");
+        getline(255,buf);
+        execcmd(buf);
+    }
+    return 0;
+}
 #endif

@@ -23,8 +23,7 @@ typedef char* va_list;
 #define IS_FLAGS(c) ((c)=='-' || (c)=='+' || (c)==' ' || (c)=='#' || (c)=='0')
 #define IS_DIGIT(c) ('0'<=(c) && (c)<='9')
 
-enum vsprintf_length
-{
+enum vsprintf_length {
 	len_none,
 	len_hh,len_h,
 	len_l,len_ll,

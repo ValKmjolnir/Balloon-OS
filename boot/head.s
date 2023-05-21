@@ -1,204 +1,105 @@
 # balloon system head.s
 # copyright @ValKmjolnir
-# 2020
+# 2021
 
-.text
-
-.global idt, gdt, pg_dir, tmp_floppy_area
-pg_dir:	# pg_dir write here,overwrite startup code
 .global startup_32
+.global gdt
+.global idt
 
 startup_32:
-	movl $0x10, %eax
-	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %fs
-	mov %ax, %gs
-	lss stack_start, %esp # setup the stack to stack_start(in init/main.c), change ss and %esp together
-	call setup_idt
-	call setup_gdt
-	mov $0x10, %eax       # reload all segment registers after changing gdt
-	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %fs
-	mov %ax, %gs
-	lss stack_start, %esp
-	xorl %eax, %eax
-1:	incl %eax
-	movl %eax, 0x000000 # Compare the address 0 with 1MB
-	cmpl %eax, 0x100000
-	je 1b               # If A20 not enabled, loop forever
-# check 486
-	movl %cr0, %eax
-	andl $0x80000011, %eax
-	orl $2, %eax        # Set MP Bit
-	movl %eax, %cr0
-	call check_x87
-	jmp after_page_tables
-
-check_x87:
-	fninit
-	fstsw %ax
-	cmpb $0, %al
-	je 1f
-	movl %cr0, %eax
-	xorl $6, %eax
-	movl %eax, %cr0
-	ret
-.align 2
-1:	.byte 0xDB, 0xE4    # 287
-	ret
+    lss stack_start,%esp   # stack_start(in init/main.c)
+    lidt idt_info          # load idt
+    lgdt gdt_info          # load gdt
+    mov $0x10,%eax         # reload all segment registers after changing gdt
+    mov %ax,%ds
+    mov %ax,%es
+    mov %ax,%fs
+    mov %ax,%gs
+    lss stack_start,%esp   # reload esp
 
 setup_idt:
-	# We fill all the IDT entries with a default entry
-	# that will display a message when any interrupt is triggered
-	lea ignore_int, %edx
-	movl $0x00080000, %eax
-	movw %dx, %ax
-	mov $0x8E00, %dx
-	lea idt, %edi
+    lea ignore_int,%edx    # edx=ignore_int address
+    movl $0x00080000,%eax  # 0x0008 segment selector
+    movw %dx,%ax           # ax=offset_low
+    mov $0x8e00,%dx        # P=1(segment exist) DPL=00(highest privilege) 01110(interrupt gate)
 
-	mov $256, %cx
+    lea idt,%edi           # edi=idt address
+    mov $256,%cx           # repeat 256 times
 rp_sidt:
-	# Fill the IDT Table will default stub entry
-	mov %eax, (%edi)
-	mov %edx, 4(%edi)
-	addl $8, %edi
-	dec %cx
-	jne rp_sidt
-	lidt idt_descr # Load IDT Register
-	ret
+    mov %eax,(%edi)        # load low 4 bytes
+    mov %edx,4(%edi)       # load high 4 bytes
+    addl $8,%edi           # edi+=8
+    dec %cx                # --cx
+    jne rp_sidt
 
-setup_gdt:
-	lgdt gdt_descr
-	ret
+system_main:
+    push $0
+    push $0
+    push $0
+    pushl $L
+    pushl $main            # main address on top of stack
+    ret                    # jump to main
+L:  jmp L
 
-# Make place for pg directory
-.org 0x1000 # Align to 4KB Boundary
-pg0:
+int_msg:
+    .asciz "unknown interrupt\n"
 
-.org 0x2000
-pg1:
-
-.org 0x3000
-pg2:
-
-.org 0x4000
-pg3:
-
-.org 0x5000
-
-tmp_floppy_area:
-	.fill 1024,1,0 # fill here with 1024 (1)Bytes of 0
-
-after_page_tables:
-	push $0
-	push $0
-	push $0
-	pushl $L6
-	pushl $main
-	jmp setup_paging
-L6:
-	jmp L6
-
-int_msg: # Message to display when interrupt happen
-	.asciz "Unknown interrupt\n"
-
-.align 2 # Align to 4Bytes
-
-# This routine is used to print a default message when any interrupt comes
+.align 2
 
 ignore_int:
-	pushl %eax
-	pushl %ecx
-	pushl %edx
-	push %ds
-	push %es
-	push %fs
-	movl $0x10, %eax
-	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %fs
-	pushl $int_msg
-	call printk	
-	popl %eax
-	pop %fs
-	pop %es
-	pop %ds
-	popl %edx
-	popl %ecx
-	popl %eax
-	iret
-
-.align 2
-setup_paging:
-	movl $1024*5, %ecx # We have 5 pages (one page pg_dir + 4 pages)
-	xorl %eax, %eax
-	xorl %edi, %edi
-	cld;rep;stosl
-	
-	# Setup Page Directory(Only 4)
-	movl $pg0+7, pg_dir    # +7 Means set attribute present bit, r/w user
-	movl $pg1+7, pg_dir+4  # -- -- ---
-	movl $pg2+7, pg_dir+8  # -- -- ---
-	movl $pg3+7, pg_dir+12 # -- -- ---
-	
-	# Then we fill the rest of the page table
-	# We mapped the highest linear address to Phy Address 16MB
-	movl $pg3 + 4092, %edi
-	movl $0xfff007, %eax   # 7 means present, r/w user attribute
-
-	std
-1:	stosl
-	subl $0x1000, %eax
-	jge 1b
-
-	# Set up the Page Dir register cr3
-	xorl %eax, %eax
-	movl %eax, %cr3
-
-	# Then enable paging
-	movl %cr0, %eax
-	orl $0x80000000, %eax  # Set the paging bit
-	movl %eax, %cr0        # ENABLE PAGING NOW!
-	ret
+    pushl %eax
+    pushl %ecx
+    pushl %edx
+    push %ds
+    push %es
+    push %fs
+    movl $0x10,%eax
+    mov %ax,%ds
+    mov %ax,%es
+    mov %ax,%fs
+    pushl $int_msg
+    call printk	
+    popl %eax
+    pop %fs
+    pop %es
+    pop %ds
+    popl %edx
+    popl %ecx
+    popl %eax
+    iret
 
 .align 2
 .word 0
 
-idt_descr:
-	.word 256*8-1 # Length in Bytes - 1
-	.long idt     # Base
+idt_info:
+    .word 256*8-1 # Length in Bytes - 1
+    .long idt     # Base
 
 .align 2
 .word 0
 
-gdt_descr:
-	.word 256*8-1
-	.long gdt
-	.align 8
+gdt_info:
+    .word 256*8-1
+    .long gdt
+
+.align 8
 
 idt:
-	.fill 256,8,0 # Forget to set IDT at first QAQ
+    .fill 256,8,0
 
 gdt:
-	# Empty Entry (FIRST ENTRY)
-	.quad 0x0000000000000000
-	# BaseAddress = 0x00000000
-	# Limit = 0xfff
-	# Granularity = 1 means 4KB Segment limit are 4KB unit
-	# TYPE = 0xA Executable Read
-	# DPL = 0x00 S = 1 P = 1
-	# Code Segment
-	.quad 0x00c09a0000000fff
-	# BaseAddress = 0x00000000
-	# Limit = 0xfff
-	# Granularity = 1 means 4KB Segment limit are 4KB unit
-	# TYPE = 0x2 Read/Write
-	# DPL = 0x00 S = 1 P = 1
-	# Data Segment
-	.quad 0x00c0920000000fff
-	# Temporaray
-	.quad 0x0000000000000000
-	.fill 252,8,0
+    # empty
+    .quad 0x0000000000000000
+
+    # code segment
+    .quad 0x00c09a0000000fff
+    # base=0x00000000
+    # limit=0xfff G=1 4kb unit 0x1000*0x1000=16MB
+    # type=0x2(read/write)
+    # DPL=0x00(highest privilege) S=1(code/data segment) P=1(segment exist)
+
+    # data segment
+    .quad 0x00c0920000000fff
+
+    .fill 253,8,0
 
