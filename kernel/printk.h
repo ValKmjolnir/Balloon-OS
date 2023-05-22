@@ -44,6 +44,21 @@ void moveup() {
     return;
 }
 
+char* vprintk_hex_num(char* str, long num) {
+    char tmp[8];
+    for(int i=0;i<8;++i) {
+        tmp[i]='0';
+    }
+    for(int i=0;i<8;++i) {
+        int hex_bit=(num&15);
+        tmp[7-i]=(hex_bit>9? 'a'+hex_bit-10:'0'+hex_bit);
+        num>>=4;
+    }
+    for(int ptr=0;ptr<8;++ptr)
+        *str++=tmp[ptr];
+    return str;
+}
+
 void vprintk(const char* fmt,va_list ap) {
     char* tmp=printk_buff;
     for(int i=0;fmt[i] && tmp-printk_buff<511;++i) {
@@ -78,6 +93,11 @@ void vprintk(const char* fmt,va_list ap) {
                             *tmp++=s[i];
                         }
                     }
+                    break;
+                case 'p':
+                    *tmp++='0';
+                    *tmp++='x';
+                    tmp=vprintk_hex_num(tmp,(unsigned long)va_arg(ap,void *));
                     break;
                 case '%':*tmp++='%';break;
                 default:--i;*tmp++='%';break;

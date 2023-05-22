@@ -4,7 +4,7 @@
 
 .global startup_32
 .global gdt
-.global idt
+; .global idt
 
 startup_32:
     lss stack_start,%esp   # stack_start(in init/main.c)
@@ -17,20 +17,35 @@ startup_32:
     mov %ax,%gs
     lss stack_start,%esp   # reload esp
 
+# idt format
+# 32bit: |offset 31..16           | P|DPL|01110|00000000|
+# 32bit: |segment selector 31..16 | offset 15..0        |
+# so we do this process to build one descriptor:
+# edx = 0xabcd 01ef (address of interrupt function)
+# eax = 0x0008 0000
+# mov dx -> ax
+# edx = 0xabcd 01ef
+# eax = 0x0008 01ef
+# mov 0x8e00 -> dx
+# edx = 0xabcd 8e00
+# eax = 0x0008 01ef
+# so we get 0xabcd8e00 0x000801ef
 setup_idt:
     lea ignore_int,%edx    # edx=ignore_int address
     movl $0x00080000,%eax  # 0x0008 segment selector
-    movw %dx,%ax           # ax=offset_low
+    movw %dx,%ax           # overwrite ax with dx(edx 15..0)
     mov $0x8e00,%dx        # P=1(segment exist) DPL=00(highest privilege) 01110(interrupt gate)
+                           # 1000 1110 -> 0x8e
 
     lea idt,%edi           # edi=idt address
     mov $256,%cx           # repeat 256 times
-rp_sidt:
+
+repeat_setup_idt:
     mov %eax,(%edi)        # load low 4 bytes
     mov %edx,4(%edi)       # load high 4 bytes
     addl $8,%edi           # edi+=8
     dec %cx                # --cx
-    jne rp_sidt
+    jne repeat_setup_idt
 
 system_main:
     push $0
@@ -84,8 +99,8 @@ gdt_info:
 
 .align 8
 
-idt:
-    .fill 256,8,0
+; idt:
+;     .fill 256,8,0
 
 gdt:
     # empty

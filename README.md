@@ -4,13 +4,13 @@ toy OS just for FUN
 
 ## Environment
 
-Ubuntu 16.04.6-LTS-amd64
+Ubuntu 18.04-LTS-amd64
 
 ## System Test Environment
 
 qemu-system-i386
 
-if having problems compiling like this:
+if having problems compiling like this(in ubuntu 16.04):
 
 ```C++
 /usr/include/stdint.h:26:10: fatal error: bits/libc-header-start.h: No such file or directory

@@ -1,9 +1,6 @@
 #ifndef __GETCHAR_H__
 #define __GETCHAR_H__
 
-#include <stdint.h>
-#include "../kernel/printk.h"
-
 #define esc       0x1b
 #define backspace '\b'
 #define tab       '\t'

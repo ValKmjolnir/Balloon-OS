@@ -48,5 +48,4 @@ clean:
 	- @rm -f build/*.o build/bootsect build/setup build/system build/system.sym build/Image
 
 run-qemu: build/image.img
-	- @qemu-system-i386 -boot a -fda build/image.img -curses 
-# -fda running from virtual floppy
+	- @qemu-system-i386 -boot a -drive format=raw,file=build/image.img,index=0,if=floppy -curses

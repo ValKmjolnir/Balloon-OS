@@ -16,22 +16,24 @@ struct {
     short ss;  // ss  0x10
 } stack_start = {&system_stack[2048],0x10};
 
+extern uint64_t idt[256];
+
 // init vga 16 color memory
 void init_vga_memory(int color) {
-	// 320 pixels in a line 0x140
-	for(unsigned int i=0xa0000;i<0xb0000;++i) {
-		*(char*)i=color;
+    // 320 pixels in a line 0x140
+    for(unsigned int i=0xa0000;i<0xb0000;++i) {
+        *(char*)i=color;
     }
-	return;
+    return;
 }
 
 int help();
 
 int version() {
-    printk(" Balloon OS v0.0.5\n");
-    printk(" ___  ____          __   __  _  _\n");
-    printk(" |__] |__| |   |   |  | |  | |\\ |\n");
-    printk(" |__] |  | |__ |__ |__| |__| | \\|\n");
+    printk("Balloon OS v0.0.5\n");
+    printk("___  ____          __   __  _  _\n");
+    printk("|__] |__| |   |   |  | |  | |\\ |\n");
+    printk("|__] |  | |__ |__ |__| |__| | \\|\n");
     return 0;
 }
 
@@ -80,7 +82,7 @@ struct {
 
 int help() {
     for(int i=0;cmd_info[i].cmd_name;++i) {
-        printk(" %s\n",cmd_info[i].cmd_name);
+        printk("%s\n",cmd_info[i].cmd_name);
     }
 }
 
@@ -91,16 +93,18 @@ void execcmd(const char* buf) {
             return;
         }
     }
-    printk(" %s: command not found\n",buf);
+    printk("%s: command not found\n", buf);
     return;
 }
 
 int main() {
     char buf[256];
     clean();
-    printk(" Balloon OS v0.0.5\n");
-    printk(" Copyright @ValKmjolnir 2020-2023\n");
-    printk(" https://github.com/ValKmjolnir/Balloon-OS\n");
+    printk("Balloon OS v0.0.5\n");
+    printk("Copyright @ValKmjolnir 2020-2023\n");
+    printk("https://github.com/ValKmjolnir/Balloon-OS\n");
+    printk("idt[%d] %p %p\n",80,((uint32_t)(idt[80]>>32))&0xffffffff,(uint32_t)(idt[80]&0xffffffff));
+
     while(1) {
         printk("$> ");
         getline(255,buf);
